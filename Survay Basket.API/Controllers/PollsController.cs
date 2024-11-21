@@ -1,4 +1,7 @@
-﻿namespace Survay_Basket.API.Controllers;
+﻿using Microsoft.AspNetCore.Authorization;
+using Survay_Basket.API.Contracts.Polls;
+
+namespace Survay_Basket.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -7,30 +10,31 @@ public class PollsController(IUnitOfWork context) : ControllerBase
     private readonly IUnitOfWork _context = context;
 
     [HttpGet]
-    public IActionResult GetAll()
+    [Authorize]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
-        var polls = _context.PollService.GetAll();
+        var response = await _context.PollService.GetAllAsync(cancellationToken);
 
-        var respone = polls.Adapt<List<PollResponse>>();
+        
 
-        return Ok(respone);
+        return Ok(response);
     }
     
     [HttpGet("{id}")]
-    public IActionResult Get([FromRoute] int id)
+    public async Task<IActionResult> Get([FromRoute] int id, 
+        CancellationToken cancellationToken)
     {
-        var poll = _context.PollService.GetById(id);
+        var response = await _context.PollService.GetByIdAsync(id, cancellationToken);
 
-        if (poll == null)
+        if (response == null)
             return NotFound();
 
-        var respone = poll.Adapt<PollResponse>();
-
-        return Ok(_context.PollService.GetById(id));
+        return Ok(response);
     }
 
     [HttpPost("")]
-    public IActionResult Add([FromBody] CreatePollRequest request)
+    public async Task<IActionResult> Add([FromBody] PollRequest request, 
+        CancellationToken cancellationToken)
     {
         // Without Using AddFluentValidationAutoValidation
         ///var validationResult = validator.Validate(request);
@@ -41,7 +45,10 @@ public class PollsController(IUnitOfWork context) : ControllerBase
         ///    return ValidationProblem();
         ///}
 
-        var result = _context.PollService.Add(request.Adapt<Poll>());
+        var result = await _context.PollService.AddAsync(request, cancellationToken);
+
+        if (result == null)
+            return BadRequest("This Title Exists!");
 
         var respone = result.Adapt<PollResponse>();
 
@@ -50,19 +57,32 @@ public class PollsController(IUnitOfWork context) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update([FromRoute] int id, [FromBody] Poll request)
+    public async Task<IActionResult> Update([FromRoute] int id, 
+        [FromBody] PollRequest request, 
+        CancellationToken cancellationToken)
     {
-        var result = _context.PollService.Update(id, request);
+        var result = await _context.PollService.UpdateAsync(id, request, cancellationToken);
         
-        if (!result)
+        if (result is null)
+            return BadRequest("Not Found");
+
+        return Ok(result);
+    }
+    [HttpPut("{id}/togglePublish")]
+    public async Task<IActionResult> TogglePublish([FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var toggleResponse = await _context.PollService.TogglePublishStatusAsync(id, cancellationToken);
+        if (!toggleResponse)
             return NotFound();
 
         return NoContent();
     }
-    [HttpDelete("")]
-    public IActionResult Delete([FromRoute] int id)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete([FromRoute] int id, 
+        CancellationToken cancellationToken)
     {
-        var result = _context.PollService.Delete(id);
+        var result = await _context.PollService.DeleteAsync(id, cancellationToken);
         if (!result)
             return NotFound();
 

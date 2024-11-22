@@ -37,7 +37,7 @@ public class PollService(ApplicationDbContext context) : IPollService
         }
         poll.Title = request.Title;
         poll.Summary = request.Description;
-        poll.IsPublished = request.IsPublished;
+        
         poll.StartsAt = request.StartsAt;
         poll.EndsAt = request.EndsAt;
 

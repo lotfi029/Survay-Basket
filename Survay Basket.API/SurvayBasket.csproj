@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+ <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Survay_Basket.API</RootNamespace>
+    <UserSecretsId>bc999be1-492f-4129-afa6-d0a0b455b187</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

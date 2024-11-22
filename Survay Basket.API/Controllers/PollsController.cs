@@ -5,12 +5,12 @@ namespace Survay_Basket.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class PollsController(IUnitOfWork context) : ControllerBase
 {
     private readonly IUnitOfWork _context = context;
 
     [HttpGet]
-    [Authorize]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var response = await _context.PollService.GetAllAsync(cancellationToken);

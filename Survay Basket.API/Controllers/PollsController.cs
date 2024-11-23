@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Azure;
+using Microsoft.AspNetCore.Authorization;
 using Survay_Basket.API.Contracts.Polls;
 
 namespace Survay_Basket.API.Controllers;
@@ -15,9 +16,10 @@ public class PollsController(IUnitOfWork context) : ControllerBase
     {
         var response = await _context.PollService.GetAllAsync(cancellationToken);
 
-        
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status404NotFound);
 
-        return Ok(response);
+        return Ok(response.Value);
     }
     
     [HttpGet("{id}")]
@@ -26,66 +28,55 @@ public class PollsController(IUnitOfWork context) : ControllerBase
     {
         var response = await _context.PollService.GetByIdAsync(id, cancellationToken);
 
-        if (response == null)
-            return NotFound();
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status404NotFound);
 
-        return Ok(response);
+        return Ok(response.Value);
     }
 
     [HttpPost("")]
     public async Task<IActionResult> Add([FromBody] PollRequest request, 
         CancellationToken cancellationToken)
     {
-        // Without Using AddFluentValidationAutoValidation
-        ///var validationResult = validator.Validate(request);
-        ///if (!validationResult.IsValid)
-        ///{
-        ///    ModelStateDictionary modelState = new();
-        ///    validationResult.Errors.ForEach(e => modelState.AddModelError( e.PropertyName, e.ErrorMessage ));
-        ///    return ValidationProblem();
-        ///}
+        var response = await _context.PollService.AddAsync(request, cancellationToken);
 
-        var result = await _context.PollService.AddAsync(request, cancellationToken);
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status400BadRequest);
 
-        if (result == null)
-            return BadRequest("This Title Exists!");
-
-        var respone = result.Adapt<PollResponse>();
-
-
-        return CreatedAtAction(nameof(Get), new {id = result.Id}, respone);
+        return CreatedAtAction(nameof(Get),new { id = response.Value.Id}, response.Value);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update([FromRoute] int id, 
-        [FromBody] PollRequest request, 
+    public async Task<IActionResult> Update([FromRoute] int id,
+        [FromBody] PollRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _context.PollService.UpdateAsync(id, request, cancellationToken);
-        
-        if (result is null)
-            return BadRequest("Not Found");
+        var response = await _context.PollService.UpdateAsync(id, request, cancellationToken);
 
-        return Ok(result);
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status400BadRequest);
+
+        return Ok(response.Value);
     }
     [HttpPut("{id}/togglePublish")]
     public async Task<IActionResult> TogglePublish([FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var toggleResponse = await _context.PollService.TogglePublishStatusAsync(id, cancellationToken);
-        if (!toggleResponse)
-            return NotFound();
-
-        return NoContent();
+        var response = await _context.PollService.TogglePublishStatusAsync(id, cancellationToken);
+        
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status400BadRequest);
+        return Ok();
     }
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] int id, 
         CancellationToken cancellationToken)
     {
-        var result = await _context.PollService.DeleteAsync(id, cancellationToken);
-        if (!result)
-            return NotFound();
+        var response = await _context.PollService.DeleteAsync(id, cancellationToken);
+        
+        if (response.IsFailer)
+            return response.ToProblem(StatusCodes.Status400BadRequest);
 
-        return NoContent();
+        return Ok();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Azure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Survay_Basket.API.Authentication;
@@ -15,28 +16,28 @@ public class AuthController(IUnitOfWork context) : ControllerBase
     {
         var authResult = await _context.AuthService.GetTokenAsync(request, cancellationToken);
 
-        if (authResult is null) 
-            return BadRequest("Invalid email | Password");
+        if (authResult.IsFailer)
+            return authResult.ToProblem(StatusCodes.Status400BadRequest);
 
-        return Ok(authResult);
+        return Ok(authResult.Value);
     }
     [HttpPost("refresh")]
     public async Task<IActionResult> RefreshAsync([FromBody] RefreshTokenRequest request,CancellationToken cancellationToken)
     {
         var refreshResult = await _context.AuthService.GetRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
 
-        if (refreshResult is null) 
-            return BadRequest("Invalid Token");
+        if (refreshResult.IsFailer)
+            return refreshResult.ToProblem(StatusCodes.Status400BadRequest);
 
-        return Ok(refreshResult);
+        return Ok(refreshResult.Value);
     }
     [HttpPost("revoke-refresh-token")]
     public async Task<IActionResult> RevokeRefreshTokenAsync([FromBody] RefreshTokenRequest request,CancellationToken cancellationToken)
     {
         var isRevoked = await _context.AuthService.RevokeRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
 
-        if (!isRevoked) 
-            return BadRequest("Operation Faild");
+        if (isRevoked.IsFailer) 
+            return isRevoked.ToProblem(StatusCodes.Status400BadRequest);
 
         return Ok();
     }

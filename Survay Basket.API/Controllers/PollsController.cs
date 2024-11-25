@@ -1,6 +1,4 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Authorization;
-using Survay_Basket.API.Contracts.Polls;
+﻿using Microsoft.AspNetCore.Authorization;
 
 namespace Survay_Basket.API.Controllers;
 

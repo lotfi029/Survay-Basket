@@ -13,13 +13,14 @@ public class ApplicationDbContext(
 {
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-    public virtual DbSet<Poll> Polls { get; set; }
+    public virtual DbSet<Poll> Polls { get; set; } = default!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);
     }
 
+    // audiat
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         var entries = ChangeTracker.Entries<AuditableEntity>();

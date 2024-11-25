@@ -7,6 +7,7 @@ using Survay_Basket.API.Authentication;
 using System.Reflection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Survay_Basket.API.Errors;
 
 namespace Survay_Basket.API;
 
@@ -37,6 +38,10 @@ public static class DependencyInjection
         
         // UOW
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Exception Handler
+        services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.AddProblemDetails();
 
         return services;
     }

@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-
-namespace Survay_Basket.API.Controllers;
+﻿namespace Survay_Basket.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -9,39 +7,15 @@ public class PollsController(IUnitOfWork context) : ControllerBase
 {
     private readonly IUnitOfWork _context = context;
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
-    {
-        var response = await _context.PollService.GetAllAsync(cancellationToken);
-
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status404NotFound);
-
-        return Ok(response.Value);
-    }
-    
-    [HttpGet("{id}")]
-    public async Task<IActionResult> Get([FromRoute] int id, 
-        CancellationToken cancellationToken)
-    {
-        var response = await _context.PollService.GetByIdAsync(id, cancellationToken);
-
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status404NotFound);
-
-        return Ok(response.Value);
-    }
-
     [HttpPost("")]
     public async Task<IActionResult> Add([FromBody] PollRequest request, 
         CancellationToken cancellationToken)
     {
-        var response = await _context.PollService.AddAsync(request, cancellationToken);
+        var result = await _context.PollService.AddAsync(request, cancellationToken);
 
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status400BadRequest);
-
-        return CreatedAtAction(nameof(Get),new { id = response.Value.Id}, response.Value);
+        return result.IsSuccess 
+            ? CreatedAtAction(nameof(Get),new { id = result.Value.Id}, result.Value) 
+            : result.ToProblem(); 
     }
 
     [HttpPut("{id}")]
@@ -49,32 +23,48 @@ public class PollsController(IUnitOfWork context) : ControllerBase
         [FromBody] PollRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await _context.PollService.UpdateAsync(id, request, cancellationToken);
+        var result = await _context.PollService.UpdateAsync(id, request, cancellationToken);
 
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status400BadRequest);
-
-        return Ok(response.Value);
+        return result.IsSuccess ?  NoContent() : result.ToProblem();
     }
     [HttpPut("{id}/togglePublish")]
     public async Task<IActionResult> TogglePublish([FromRoute] int id,
         CancellationToken cancellationToken)
     {
-        var response = await _context.PollService.TogglePublishStatusAsync(id, cancellationToken);
+        var result = await _context.PollService.TogglePublishStatusAsync(id, cancellationToken);
         
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status400BadRequest);
-        return Ok();
+        return result.IsSuccess ? NoContent() : result.ToProblem();
     }
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete([FromRoute] int id, 
         CancellationToken cancellationToken)
     {
-        var response = await _context.PollService.DeleteAsync(id, cancellationToken);
+        var result = await _context.PollService.DeleteAsync(id, cancellationToken);
         
-        if (response.IsFailer)
-            return response.ToProblem(StatusCodes.Status400BadRequest);
+        return result.IsSuccess ? NoContent() : result.ToProblem();
+    }
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var result = await _context.PollService.GetAllAsync(cancellationToken);
 
-        return Ok();
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get([FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _context.PollService.GetByIdAsync(id, cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
+    [HttpGet("current")]
+    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
+    {
+        var result = await _context.PollService.GetCurrentAsync(cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

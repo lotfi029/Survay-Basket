@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SurvayBasket", "Survay Basket.API\SurvayBasket.csproj", "{64DF004F-311A-40CC-8AE7-ACAC3814BAB5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{718A0DF8-B0B2-4AD0-9B78-4EFE9C9A3F60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{64DF004F-311A-40CC-8AE7-ACAC3814BAB5} = {718A0DF8-B0B2-4AD0-9B78-4EFE9C9A3F60}
 	EndGlobalSection
 EndGlobal

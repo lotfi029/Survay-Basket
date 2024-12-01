@@ -1,4 +1,5 @@
 ﻿using Survay_Basket.API.Contracts.Polls;
+using Survay_Basket.API.Contracts.Question;
 
 namespace Survay_Basket.API.Mapping;
 
@@ -12,6 +13,8 @@ public class MappingConfigurations : IRegister
         config.NewConfig<PollRequest, Poll>()
             .Map(dest => dest.Summary, src => src.Description);
 
+        config.NewConfig<QuestionRequest, Question>()
+            .Ignore(nameof(Question.Answers));
         
     }
 }

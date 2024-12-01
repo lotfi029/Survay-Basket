@@ -35,7 +35,7 @@ public class AuthService(UserManager<ApplicationUser> userManager,
         await _userManager.UpdateAsync(user);
 
         var respone = new AuthResponse(user.Id, user.FirstName, user.LastName, user.Email, token, "Bearer", expiresIn, refreshToken, refreshTokenExpiration);
-
+        
         return Result.Success(respone);
     }
 

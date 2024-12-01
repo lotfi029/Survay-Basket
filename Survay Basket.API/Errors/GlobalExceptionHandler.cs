@@ -24,3 +24,6 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
         return true;
     }
 }
+// fluent-validation
+// mapster
+// mapper

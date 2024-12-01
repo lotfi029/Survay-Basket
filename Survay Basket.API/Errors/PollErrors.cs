@@ -3,11 +3,8 @@
 public static class PollErrors
 {
     public static readonly Error NotFound
-        = new Error("Poll.PollNotFound", "this poll is not found");
+        = new("Poll.PollNotFound", "No Poll was found with the given Id", StatusCodes.Status404NotFound);
 
     public static readonly Error InvalidTitle
-        = new Error("Poll.InvalidPollTitle", "this title exit before please select other title");
-
-
-
+        = new("Poll.DuplicatedPollTitle", "Anothor poll with the same title is aleardy exist.", StatusCodes.Status409Conflict);
 }

@@ -155,6 +155,37 @@ namespace Survay_Basket.API.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Survay_Basket.API.Entities.Answer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VoteId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VoteId");
+
+                    b.HasIndex("QuestionId", "Content");
+
+                    b.ToTable("Answers");
+                });
+
             modelBuilder.Entity("Survay_Basket.API.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -279,7 +310,105 @@ namespace Survay_Basket.API.Migrations
 
                     b.HasIndex("UpdatedById");
 
-                    b.ToTable("Polls", (string)null);
+                    b.ToTable("Polls");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Question", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreateOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedById")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PollId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("UpdatedById");
+
+                    b.HasIndex("PollId", "Content");
+
+                    b.ToTable("Questions");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Vote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PollId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SubmittedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("PollId", "UserId");
+
+                    b.ToTable("Votes");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.VoteAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnswerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VoteId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnswerId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("VoteId", "QuestionId");
+
+                    b.ToTable("VoteAnswers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -333,6 +462,21 @@ namespace Survay_Basket.API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Survay_Basket.API.Entities.Answer", b =>
+                {
+                    b.HasOne("Survay_Basket.API.Entities.Question", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.Vote", null)
+                        .WithMany("Answers")
+                        .HasForeignKey("VoteId");
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("Survay_Basket.API.Entities.ApplicationUser", b =>
                 {
                     b.OwnsMany("Survay_Basket.API.Entities.RefreshToken", "RefreshTokens", b1 =>
@@ -375,7 +519,7 @@ namespace Survay_Basket.API.Migrations
                     b.HasOne("Survay_Basket.API.Entities.ApplicationUser", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Survay_Basket.API.Entities.ApplicationUser", "UpdatedBy")
@@ -385,6 +529,94 @@ namespace Survay_Basket.API.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Question", b =>
+                {
+                    b.HasOne("Survay_Basket.API.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.Poll", "Poll")
+                        .WithMany("Questions")
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.ApplicationUser", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedById");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Poll");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Vote", b =>
+                {
+                    b.HasOne("Survay_Basket.API.Entities.Poll", "Poll")
+                        .WithMany("Votes")
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Poll");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.VoteAnswer", b =>
+                {
+                    b.HasOne("Survay_Basket.API.Entities.Answer", "Answer")
+                        .WithMany()
+                        .HasForeignKey("AnswerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.Question", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Survay_Basket.API.Entities.Vote", "Vote")
+                        .WithMany()
+                        .HasForeignKey("VoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Answer");
+
+                    b.Navigation("Question");
+
+                    b.Navigation("Vote");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Poll", b =>
+                {
+                    b.Navigation("Questions");
+
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Question", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("Survay_Basket.API.Entities.Vote", b =>
+                {
+                    b.Navigation("Answers");
                 });
 #pragma warning restore 612, 618
         }

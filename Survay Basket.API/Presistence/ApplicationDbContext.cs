@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Survay_Basket.API.Presistence.EntitiesConfigurations;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -14,9 +12,22 @@ public class ApplicationDbContext(
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
     public virtual DbSet<Poll> Polls { get; set; } = default!;
+    public virtual DbSet<Question> Questions { get; set; } = default!;
+    public virtual DbSet<Answer> Answers { get; set; } = default!;
+    public virtual DbSet<Vote> Votes { get; set; } = default!;
+    public DbSet<VoteAnswer> VoteAnswers { get; set; } = default!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        var cascadeFKs = modelBuilder.Model
+            .GetEntityTypes()
+            .SelectMany(t => t.GetForeignKeys())
+            .Where(fk => fk.DeleteBehavior == DeleteBehavior.Cascade && !fk.IsOwnership);
+
+        foreach (var fk in cascadeFKs)
+            fk.DeleteBehavior = DeleteBehavior.Restrict;
+
         base.OnModelCreating(modelBuilder);
     }
 
@@ -24,7 +35,7 @@ public class ApplicationDbContext(
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         var entries = ChangeTracker.Entries<AuditableEntity>();
-        var currentUserId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var currentUserId = _httpContextAccessor.HttpContext?.User.GetUserId()!;
 
         foreach (var entityTrack in entries)
         {

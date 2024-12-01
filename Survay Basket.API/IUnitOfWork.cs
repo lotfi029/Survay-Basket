@@ -6,4 +6,7 @@ public interface IUnitOfWork : IDisposable
 {
     IPollService PollService { get; }
     IAuthService AuthService { get; }
+    IQuestionService QuestionService { get; }
+    IVoteService VoteService { get; }
+    IResultService ResultService { get; }
 }

@@ -17,7 +17,7 @@ public static class DependencyInjection
     {
         
         services.AddControllers();
-        services.AddSwagger();
+        //services.AddSwagger();
 
         // Add Mapster
         var mappingConfig = TypeAdapterConfig.GlobalSettings;
@@ -93,9 +93,9 @@ public static class DependencyInjection
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings?.Key!)),
-            ValidIssuer = settings?.Issuer,
-            ValidAudience = settings?.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings!.Key)),
+            ValidIssuer = settings.Issuer,
+            ValidAudience = settings.Audience,
         };});
 
 

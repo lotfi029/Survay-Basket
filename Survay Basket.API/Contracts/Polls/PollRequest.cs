@@ -5,4 +5,4 @@ public record PollRequest(
     string Description,
     DateTime StartsAt,
     DateTime EndsAt
-    );
+);

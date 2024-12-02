@@ -12,3 +12,5 @@ global using Survay_Basket.API.Entities;
 global using Survay_Basket.API;
 global using Survay_Basket.API.Extensions;
 global using Survay_Basket.API.Errors;
+global using Microsoft.AspNetCore.Identity;
+global using Survay_Basket.API.Authentication;

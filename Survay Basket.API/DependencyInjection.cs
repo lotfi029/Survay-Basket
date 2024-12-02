@@ -7,7 +7,8 @@ using Survay_Basket.API.Authentication;
 using System.Reflection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Survay_Basket.API.Errors;
+using Survay_Basket.API.Settings;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace Survay_Basket.API;
 
@@ -32,16 +33,29 @@ public static class DependencyInjection
             .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         services.AddDataBase(configuration);
-        
+
+        // Distributed
+        services.AddDistributedMemoryCache();
+        // Hybrid
+        //services.AddHybridCache();
+
         // JWT
         services.AddAuthConfig(configuration);
         
         // UOW
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IAuthService, AuthService>();
+
+        services.AddScoped<ICacheService, CacheService>();
+        services.AddScoped<IEmailSender, EmailService>();
+        services.AddHttpContextAccessor();
 
         // Exception Handler
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
+
+        // mailSettings
+        services.Configure<MailSetting>(configuration.GetSection(MailSetting.SectionName));
 
         return services;
     }
@@ -77,26 +91,35 @@ public static class DependencyInjection
         var settings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
 
         services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).
-        AddJwtBearer(o =>
+        }).AddJwtBearer(o =>
+            {
+            o.SaveToken = true;
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings!.Key)),
+                ValidIssuer = settings.Issuer,
+                ValidAudience = settings.Audience,
+            };    
+        });
+        services.Configure<IdentityOptions>(options =>
         {
-        o.SaveToken = true;
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings!.Key)),
-            ValidIssuer = settings.Issuer,
-            ValidAudience = settings.Audience,
-        };});
+            options.Password.RequiredLength = 8;
+            options.User.RequireUniqueEmail = true;
+            options.SignIn.RequireConfirmedEmail = true;
+
+        });
+
 
 
         return services;

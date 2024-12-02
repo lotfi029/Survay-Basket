@@ -1,7 +1,4 @@
-﻿using Azure;
-using System.Diagnostics;
-
-namespace Survay_Basket.API.Abstractions;
+﻿namespace Survay_Basket.API.Abstractions;
 
 public static class ResultExtensions
 {

@@ -26,8 +26,6 @@ public class QuestionsController(IUnitOfWork context) : ControllerBase
     {
         var result = await _context.QuestionService.UpdateAsync(pollId, id, question, cancellationToken);
 
-
-
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
     [HttpPut("{id}/toggleStatus")]

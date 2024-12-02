@@ -15,6 +15,9 @@ public class MappingConfigurations : IRegister
 
         config.NewConfig<QuestionRequest, Question>()
             .Ignore(nameof(Question.Answers));
+
+        config.NewConfig<RegisterRequest, ApplicationUser>()
+            .Map(dest => dest.UserName, src => src.Email);
         
     }
 }

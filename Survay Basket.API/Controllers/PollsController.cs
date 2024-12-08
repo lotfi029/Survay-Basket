@@ -1,5 +1,10 @@
-﻿namespace Survay_Basket.API.Controllers;
+﻿using Asp.Versioning;
+using Survay_Basket.API.Abstractions.Consts;
 
+namespace Survay_Basket.API.Controllers;
+
+[ApiVersion(1 , Deprecated = true)]
+[ApiVersion(2)]
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
@@ -59,12 +64,23 @@ public class PollsController(IUnitOfWork context) : ControllerBase
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
-
+    [MapToApiVersion(1)]
     [HttpGet("current")]
-    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
+    [Authorize(Roles = DefaultRoles.User)]
+    public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
     {
         var result = await _context.PollService.GetCurrentAsync(cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
+    [MapToApiVersion(2)]
+    [HttpGet("current")]
+    [Authorize(Roles = DefaultRoles.User)]
+    public async Task<IActionResult> GetCurrentV2(CancellationToken cancellationToken)
+    {
+        var result = await _context.PollService.GetCurrentAsync(cancellationToken);
+
+        return result.IsSuccess ? Ok(result.Value.Select(e => new {e.Id, e.Message, e.StartsAt, e.EndsAt })) : result.ToProblem();
     }
 }

@@ -34,6 +34,10 @@ app.UseAuthorization();
 //app.UseResponseCaching();
 //app.UseOutputCache();
 
+
+app.UseRateLimiter();
+
+
 app.MapControllers();
 
 app.UseExceptionHandler();

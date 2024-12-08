@@ -1,4 +1,7 @@
-﻿namespace Survay_Basket.API.Controllers;
+﻿using Microsoft.AspNetCore.RateLimiting;
+using Survay_Basket.API.Abstractions.Consts;
+
+namespace Survay_Basket.API.Controllers;
 [Route("[controller]")]
 [ApiController]
 public class AuthController(IAuthService authService) : ControllerBase
@@ -39,7 +42,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("confirm-email")]
     public async Task<IActionResult> Confirm([FromBody] ConfirmEmailRequest request)
     {
-        var result = await _authService.ConfirmAsync(request);
+        var result = await _authService.ConfirmEmailAsync(request);
 
         return result.IsSuccess ? Ok() : result.ToProblem();
     }
@@ -64,4 +67,20 @@ public class AuthController(IAuthService authService) : ControllerBase
 
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
+
+    [HttpGet("test")]
+    [EnableRateLimiting("token")]
+    public IActionResult TestOne()
+    {
+        Thread.Sleep(6000);
+        return Ok("one");
+    }
+    [HttpGet("test-two")]
+    [EnableRateLimiting("token")]
+    public IActionResult TestTwo()
+    {
+        Thread.Sleep(6000);
+        return Ok("oneTwo");
+    }
+
 }

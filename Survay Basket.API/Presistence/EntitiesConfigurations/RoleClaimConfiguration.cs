@@ -10,7 +10,7 @@ public class RoleClaimConfiguration : IEntityTypeConfiguration<IdentityRoleClaim
     {
         var permissions = Permissions.GetAllPermissions;
         var adminClaim = new List<IdentityRoleClaim<string>>();
-        var roleId = DefaultRoles.AdminRoleId;
+        var roleId = DefaultRoles.Admin.Id;
         int cnt = 0;
 
         foreach(var permission in permissions)

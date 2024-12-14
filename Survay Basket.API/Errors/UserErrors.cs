@@ -1,6 +1,6 @@
 ﻿namespace Survay_Basket.API.Errors;
 
-public class UserErrors
+public record UserErrors
 {
     public static readonly Error InvalidCredentials 
         = new("User.InvalidCredentials", "Invalid email/password", StatusCodes.Status401Unauthorized);

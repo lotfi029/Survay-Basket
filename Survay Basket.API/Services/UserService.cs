@@ -112,7 +112,7 @@ public class UserService(
         join r in _context.Roles
         on ur.RoleId equals r.Id
         into roles
-        where !roles.Any(e => e.Name == DefaultRoles.User)
+        where !roles.Any(e => e.Name == DefaultRoles.User.Name)
         select new
         {
             u.Id,

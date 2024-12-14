@@ -16,4 +16,10 @@ global using Microsoft.AspNetCore.Identity;
 global using Survay_Basket.API.Authentication;
 global using Survay_Basket.API.Authentication.Filters;
 global using Survay_Basket.API.Abstractions.Consts;
+global using Microsoft.AspNetCore.Identity.UI.Services;
+global using Microsoft.Extensions.Options;
+global using Survay_Basket.API.Settings;
 
+global using System.Text;
+
+// TODO: Sort Namaspaces

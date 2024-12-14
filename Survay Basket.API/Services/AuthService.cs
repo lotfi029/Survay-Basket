@@ -1,21 +1,8 @@
-﻿using Azure.Core;
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
+﻿using Hangfire;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Options;
-using MimeKit;
-using Survay_Basket.API.Abstractions.Consts;
-using Survay_Basket.API.Authentication;
-using Survay_Basket.API.Errors;
 using Survay_Basket.API.Helpers;
-using Survay_Basket.API.Settings;
 using System.Data;
-using System.Security;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
 
 namespace Survay_Basket.API.Services;
 
@@ -32,14 +19,13 @@ public class AuthService(
     
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly IEmailSender _emailSender = emailSender;
-    private readonly IHttpContextAccessor contextAccessor = contextAccessor;
+    private readonly IHttpContextAccessor _contextAccessor = contextAccessor;
     private readonly ApplicationDbContext _context = context;
     private readonly ILogger<AuthService> _logger = logger;
     private readonly MailSetting _mailSettings = mailSettings.Value;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IJwtProvider _jwtProvider = jwtProvider;
     private readonly int _refreshTokenExpiryDays = 14;
-
 
     public async Task<Result<AuthResponse>> GetTokenAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
@@ -191,7 +177,7 @@ public class AuthService(
 
         if (!result.Succeeded)
         {
-            var error = result.Errors.FirstOrDefault();
+            var error = result.Errors.First();
             return Result.Failure(new Error(error!.Code, error.Description, StatusCodes.Status400BadRequest));
         }
 
@@ -199,10 +185,29 @@ public class AuthService(
 
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
+        _logger.LogInformation("Confirmation Email Code: {code} {mailSettings}", code, _mailSettings.ToString());
+
         // TODO: Send Email
-        _logger.LogInformation("Confirmation Email Code: {code}", code);
+        await SendEmailAsync(user, code);
+
 
         return Result.Success();
+    }
+    private async Task SendEmailAsync(ApplicationUser user, string code)
+    {
+        var origin = _contextAccessor.HttpContext?.Request.Headers.Origin;
+
+        var emailBody = EmailBodyBuilder.GenerateEmailBody("EmailConfirmation",
+            new Dictionary<string, string>()
+            {
+                {"{{name}}",user.FirstName},
+                {"{{action_url}}", $"{origin}/auth/email-confirmation?userId={user.Id}&code={code}"}
+            }
+        );
+
+        BackgroundJob.Enqueue(() =>  _emailSender.SendEmailAsync(user.Email!, " Survay Basket: Email Confirmation", emailBody));
+
+        await Task.CompletedTask;
     }
 
     public async Task<Result> ConfirmEmailAsync(ConfirmEmailRequest request)
@@ -232,7 +237,7 @@ public class AuthService(
             return Result.Failure(new Error(error!.Code, error.Description, StatusCodes.Status400BadRequest));
         }
 
-        await _userManager.AddToRoleAsync(user, DefaultRoles.User);
+        await _userManager.AddToRoleAsync(user, DefaultRoles.User.Name);
         return Result.Success();
         //return Result.Success();
         // TODO: Send Email
@@ -261,7 +266,7 @@ public class AuthService(
             return Result.Success();
 
         if (!user.EmailConfirmed)
-            return Result.Failure(UserErrors.EmailIsNotConfirmed);
+            return Result.Failure(UserErrors.EmailIsNotConfirmed with { statusCode = StatusCodes.Status400BadRequest});
 
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
 

@@ -2,17 +2,18 @@
 using FluentValidation.AspNetCore;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Survay_Basket.API.Authentication;
 using System.Reflection;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Survay_Basket.API.Settings;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Survay_Basket.API.Authentication.Filters;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
+using Survay_Basket.API.OpenApiTransformers;
+using Hangfire;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Survay_Basket.API.Health;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Survay_Basket.API;
 
@@ -22,49 +23,26 @@ public static class DependencyInjection
     {
         
         services.AddControllers();
-        //services.AddSwagger();
 
-        // Add Mapster
-        var mappingConfig = TypeAdapterConfig.GlobalSettings;
-        mappingConfig.Scan(Assembly.GetExecutingAssembly());
-        services.AddSingleton<IMapper>(new Mapper(mappingConfig));
-        
+        services.MapstartConfiguration();
 
-        // Add Fluent Validation
-        //services.AddScoped<IValidator<CreatePollRequest>, CreatePollRequestValidator>();
-        services
-            .AddFluentValidationAutoValidation()
-            .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.FluentValidationConfig();
 
         services.AddDataBase(configuration);
 
-        // Distributed
-        services.AddDistributedMemoryCache();
-        // Hybrid
-        //services.AddHybridCache();
+        services.AddCasheConfig();
 
         // JWT
         services.AddAuthConfig(configuration);
-        
-        // UOW
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IRoleService, RoleService>();
 
-        services.AddScoped<ICacheService, CacheService>();
-        services.AddScoped<IEmailSender, EmailService>();
-
-        services.AddTransient<IAuthorizationPolicyProvider, PermissionAutherizationPolicyProvider>();
-        services.AddTransient<IAuthorizationHandler, PermissionAutherizationHandler>();
-
-        services.AddHttpContextAccessor();
+        services.InjectService();
 
         // Exception Handler
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
 
-
         // mailSettings
+        // TODO: Validate Mail Setting Properities
         services.Configure<MailSetting>(configuration.GetSection(MailSetting.SectionName));
 
 
@@ -72,12 +50,34 @@ public static class DependencyInjection
 
         services.AddAuthConfig();
 
+        services
+            .AddEndpointsApiExplorer()
+            .AddOpenApiConfig();
+
+        //services.AddHangfireConfig(configuration);
+
+        services.AddHealthCheckConfig(configuration);
+
+        services.AddSignalR();
+
+        services.AddCorsConfig();
+
         return services;
     }
-    private static IServiceCollection AddSwagger(this IServiceCollection services)
+    private static IServiceCollection MapstartConfiguration(this IServiceCollection services)
     {
-        services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        var mappingConfig = TypeAdapterConfig.GlobalSettings;
+        mappingConfig.Scan(Assembly.GetExecutingAssembly());
+        services.AddSingleton<IMapper>(new Mapper(mappingConfig));
+
+        return services;
+    }
+    private static IServiceCollection FluentValidationConfig(this IServiceCollection services)
+    {
+        services
+          .AddFluentValidationAutoValidation()
+          .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
         return services;
     }
     private static IServiceCollection AddDataBase(this IServiceCollection services, IConfiguration configuration)
@@ -93,6 +93,56 @@ public static class DependencyInjection
 
         return services;
     }
+    private static IServiceCollection AddCasheConfig(this IServiceCollection services)
+    {
+        #pragma warning disable EXTEXP0018
+        services.AddHybridCache();
+        #pragma warning restore EXTEXP0018
+
+        return services;
+    }
+    
+    private static IServiceCollection AddHealthCheckConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHealthChecks()
+            .AddSqlServer(name: "database", connectionString: configuration.GetConnectionString("DefaultConnection")!)
+            .AddHangfire(options =>
+            {
+                options.MinimumAvailableServers = 1;
+            })
+            .AddCheck<MailProviderHealthCheck>(name: "mail service");
+
+        return services;
+    }
+    
+    private static IServiceCollection InjectService(this IServiceCollection services)
+    {
+        // UOW
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IRoleService, RoleService>();
+
+        services.AddScoped<IEmailSender, EmailService>();
+        services.AddScoped<INotificationService, NotificationService>();
+
+        services.AddTransient<IAuthorizationPolicyProvider, PermissionAutherizationPolicyProvider>();
+        services.AddTransient<IAuthorizationHandler, PermissionAutherizationHandler>();
+
+        services.AddHttpContextAccessor();
+
+        return services;
+    }
+    private static IServiceCollection AddOpenApiConfig(this IServiceCollection services)
+    {
+
+        services
+            .AddOpenApi("v1", options =>
+            {
+                options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            }); ;
+        return services;
+    }
+    
     private static IServiceCollection AddAuthConfig(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IJwtProvider, JwtProvider>();
@@ -145,27 +195,27 @@ public static class DependencyInjection
         {
             rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-            //rateLimiterOptions.AddPolicy(RateLimiterPolicyNames.IpLimiter, httpContext =>
-            //    RateLimitPartition.GetFixedWindowLimiter(
-            //        partitionKey: httpContext.Connection.LocalIpAddress?.ToString(),
-            //        factory: _ => new FixedWindowRateLimiterOptions
-            //        {
-            //            PermitLimit = 2,
-            //            Window = TimeSpan.FromSeconds(20)
-            //        }
-            //    )
-            //);
+            rateLimiterOptions.AddPolicy(RateLimiterPolicyNames.IpLimiter, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.LocalIpAddress?.ToString(),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 2,
+                        Window = TimeSpan.FromSeconds(20)
+                    }
+                )
+            );
 
-            //rateLimiterOptions.AddPolicy(RateLimiterPolicyNames.UserLimiter, httpContext =>
-            //    RateLimitPartition.GetFixedWindowLimiter(
-            //        partitionKey: httpContext.User.GetUserId(),
-            //        factory: _ => new FixedWindowRateLimiterOptions
-            //        {
-            //            PermitLimit = 2,
-            //            Window = TimeSpan.FromSeconds(20)
-            //        }
-            //    )
-            //);
+            rateLimiterOptions.AddPolicy(RateLimiterPolicyNames.UserLimiter, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.User.GetUserId(),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 2,
+                        Window = TimeSpan.FromSeconds(20)
+                    }
+                )
+            );
 
             rateLimiterOptions.AddConcurrencyLimiter(RateLimiterPolicyNames.Concurrency, options =>
             {
@@ -174,31 +224,31 @@ public static class DependencyInjection
                 options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
             });
 
-            //rateLimiterOptions.AddTokenBucketLimiter(RateLimiterPolicyNames.TokenBucket, options =>
-            //{
-            //    options.TokenLimit = 2;
-            //    options.QueueLimit = 1;
-            //    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            //    options.ReplenishmentPeriod = TimeSpan.FromSeconds(30);
-            //    options.TokensPerPeriod = 2;
-            //});
+            rateLimiterOptions.AddTokenBucketLimiter(RateLimiterPolicyNames.TokenBucket, options =>
+            {
+                options.TokenLimit = 2;
+                options.QueueLimit = 1;
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.ReplenishmentPeriod = TimeSpan.FromSeconds(30);
+                options.TokensPerPeriod = 2;
+            });
 
-            //rateLimiterOptions.AddFixedWindowLimiter(RateLimiterPolicyNames.FixedWidnow, options =>
-            //{
-            //    options.PermitLimit = 2;
-            //    options.QueueLimit = 1;
-            //    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            //    options.Window = TimeSpan.FromSeconds(30);
-            //});
+            rateLimiterOptions.AddFixedWindowLimiter(RateLimiterPolicyNames.FixedWidnow, options =>
+            {
+                options.PermitLimit = 2;
+                options.QueueLimit = 1;
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.Window = TimeSpan.FromSeconds(30);
+            });
 
-            //rateLimiterOptions.AddSlidingWindowLimiter(RateLimiterPolicyNames.SlidingWindow, options =>
-            //{
-            //    options.PermitLimit = 2;
-            //    options.QueueLimit = 1;
-            //    options.SegmentsPerWindow = 2;
-            //    options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            //    options.Window = TimeSpan.FromSeconds(30);
-            //});
+            rateLimiterOptions.AddSlidingWindowLimiter(RateLimiterPolicyNames.SlidingWindow, options =>
+            {
+                options.PermitLimit = 2;
+                options.QueueLimit = 1;
+                options.SegmentsPerWindow = 2;
+                options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                options.Window = TimeSpan.FromSeconds(30);
+            });
         });
 
 
@@ -223,5 +273,38 @@ public static class DependencyInjection
 
         return services;
     }
+    private static IServiceCollection AddHangfireConfig(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHangfire(config => config
+          .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+          .UseSimpleAssemblyNameTypeSerializer()
+          .UseRecommendedSerializerSettings()
+          .UseSqlServerStorage(configuration.GetConnectionString("HangfireConnection")));
 
+        // Add the processing server as IHostedService
+        services.AddHangfireServer();
+
+        return services;
+    }
+
+    private static IServiceCollection AddCorsConfig(this IServiceCollection services)
+    {
+        services.AddCors(options =>
+        {
+            //options.AddPolicy("AllowAll", builder =>
+            //{
+            //    builder.AllowAnyMethod();
+            //    builder.AllowAnyHeader();
+            //    builder.AllowAnyOrigin();
+            //    //builder.WithOrigins([""]);
+            //});
+
+            options.AddDefaultPolicy(builder => builder
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowAnyOrigin()
+            );
+        });
+        return services;
+    }
 }

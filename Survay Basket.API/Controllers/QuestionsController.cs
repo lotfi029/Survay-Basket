@@ -10,7 +10,7 @@ using System.Threading;
 namespace Survay_Basket.API.Controllers;
 [Route("api/polls/{pollId}/[controller]")]
 [ApiController]
-//[Authorize]
+[Authorize]
 public class QuestionsController(IUnitOfWork context) : ControllerBase
 {
     private readonly IUnitOfWork _context = context;

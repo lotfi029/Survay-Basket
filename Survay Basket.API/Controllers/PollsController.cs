@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.OutputCaching;
 using Survay_Basket.API.Abstractions.Consts;
 
 namespace Survay_Basket.API.Controllers;
@@ -7,7 +8,7 @@ namespace Survay_Basket.API.Controllers;
 [ApiVersion(2)]
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+//[Authorize]
 public class PollsController(IUnitOfWork context) : ControllerBase
 {
     private readonly IUnitOfWork _context = context;
@@ -66,7 +67,7 @@ public class PollsController(IUnitOfWork context) : ControllerBase
     }
     [MapToApiVersion(1)]
     [HttpGet("current")]
-    [Authorize(Roles = DefaultRoles.User)]
+    [Authorize(Roles = DefaultRoles.User.Name)]
     public async Task<IActionResult> GetCurrentV1(CancellationToken cancellationToken)
     {
         var result = await _context.PollService.GetCurrentAsync(cancellationToken);
@@ -76,7 +77,7 @@ public class PollsController(IUnitOfWork context) : ControllerBase
 
     [MapToApiVersion(2)]
     [HttpGet("current")]
-    [Authorize(Roles = DefaultRoles.User)]
+    [Authorize(Roles = DefaultRoles.User.Name)]
     public async Task<IActionResult> GetCurrentV2(CancellationToken cancellationToken)
     {
         var result = await _context.PollService.GetCurrentAsync(cancellationToken);

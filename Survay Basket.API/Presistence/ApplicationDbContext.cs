@@ -36,7 +36,7 @@ public class ApplicationDbContext(
     {
         var entries = ChangeTracker.Entries<AuditableEntity>();
         var currentUserId = _httpContextAccessor.HttpContext?.User.GetUserId()!;
-
+            
         foreach (var entityTrack in entries)
         {
             if (entityTrack.State == EntityState.Added)

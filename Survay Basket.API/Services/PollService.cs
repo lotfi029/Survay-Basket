@@ -1,10 +1,19 @@
-﻿namespace Survay_Basket.API.Services;
+﻿using Hangfire;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 
-public class PollService(ApplicationDbContext context) : IPollService
+namespace Survay_Basket.API.Services;
+
+public class PollService(
+    ApplicationDbContext context,
+    INotificationService notificationService) : IPollService
 {
     private readonly ApplicationDbContext _context = context;
-    
-    public async Task<Result<PollResponse>> AddAsync(PollRequest model, CancellationToken cancellationToken = default)
+    private readonly INotificationService _notificationService = notificationService;
+
+    public async Task<Result<PollResponse>> AddAsync(
+        PollRequest model, 
+        CancellationToken cancellationToken = default)
     {
         var poll = model.Adapt<Poll>();
 
@@ -57,7 +66,11 @@ public class PollService(ApplicationDbContext context) : IPollService
         poll.IsPublished = !poll.IsPublished;
         
         await _context.SaveChangesAsync(cancellationToken);
-        
+
+        if (poll.IsPublished && poll.StartsAt.Date == DateTime.Today)
+            BackgroundJob.Enqueue(() => _notificationService.SendNewPollsNotification(poll.Id, cancellationToken));
+
+
         return Result.Success();
     }
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -80,7 +93,7 @@ public class PollService(ApplicationDbContext context) : IPollService
             .AsNoTracking()
             .ProjectToType<PollResponse>()
             .ToListAsync(cancellationToken);
-        
+
         if (polls is null)
             return Result.Failure<List<PollResponse>>(PollErrors.NotFound);
 
@@ -94,6 +107,7 @@ public class PollService(ApplicationDbContext context) : IPollService
             .AsNoTracking()
             .ProjectToType<PollResponse>()
             .SingleOrDefaultAsync(cancellationToken);
+
 
         if (poll == null)
             return Result.Failure<PollResponse>(PollErrors.NotFound);

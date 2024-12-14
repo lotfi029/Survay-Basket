@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
+using Serilog;
 using System.Text.Json;
 
 namespace Survay_Basket.API.Services;
@@ -10,7 +11,6 @@ public class CacheService(IDistributedCache distributedCache) : ICacheService
     public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken) where T : class
     {
         var cachedValue = await _distributedCache.GetStringAsync(key, cancellationToken);
-
         return string.IsNullOrEmpty(cachedValue)
             ? null
             : JsonSerializer.Deserialize<T>(cachedValue);

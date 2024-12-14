@@ -8,8 +8,8 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<IdentityUserRole<s
     {
         builder.HasData(new IdentityUserRole<string>
         {
-            RoleId = DefaultRoles.AdminRoleId,
-            UserId = DefaultUsers.AdminId,
+            RoleId = DefaultRoles.Admin.Id,
+            UserId = DefaultUsers.Admin.Id,
         });
     }
 }

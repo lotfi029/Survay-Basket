@@ -3,7 +3,7 @@
 namespace Survay_Basket.API.Controllers;
 [Route("account")]
 [ApiController]
-[Authorize(Roles = DefaultRoles.User)]
+[Authorize(Roles = DefaultRoles.User.Name)]
 public class AcountsController(IUnitOfWork context) : ControllerBase
 {
     private readonly IUnitOfWork _context = context;
